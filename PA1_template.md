@@ -1,0 +1,165 @@
+#Reproducible Research Assessment 1
+
+Chandra Sutrisno Tjhong
+
+09 December 2014
+
+##Introduction
+
+It is now possible to collect a large amount of data about personal movement using activity monitoring devices such as a Fitbit, Nike Fuelband, or Jawbone Up. These type of devices are part of the “quantified self” movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. But these data remain under-utilized both because the raw data are hard to obtain and there is a lack of statistical methods and software for processing and interpreting the data.
+
+This assignment makes use of data from a personal activity monitoring device. This device collects data at 5 minute intervals through out the day. The data consists of two months of data from an anonymous individual collected during the months of October and November, 2012 and include the number of steps taken in 5 minute intervals each day.
+
+##Data
+
+The data for this assignment can be downloaded from the course web site:
+
+* Dataset: [Activity monitoring data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip) [52K]
+
+The variables included in this dataset are:
+
+* steps: Number of steps taking in a 5-minute interval (missing values are coded as NA)
+* date: The date on which the measurement was taken in YYYY-MM-DD format
+* interval: Identifier for the 5-minute interval in which measurement was taken
+
+The dataset is stored in a comma-separated-value (CSV) file and there are a total of 17,568 observations in this dataset.
+
+##Assignment
+
+This assignment will be described in multiple parts. You will need to write a report that answers the questions detailed below. Ultimately, you will need to complete the entire assignment in a single R markdown document that can be processed by knitr and be transformed into an HTML file.
+
+Throughout your report make sure you always include the code that you used to generate the output you present. When writing code chunks in the R markdown document, always use echo = TRUE so that someone else will be able to read the code. This assignment will be evaluated via peer assessment so it is essential that your peer evaluators be able to review the code for your analysis.
+
+For the plotting aspects of this assignment, feel free to use any plotting system in R (i.e., base, lattice, ggplot2)
+
+Fork/clone the GitHub repository created for this assignment. You will submit this assignment by pushing your completed files into your forked repository on GitHub. The assignment submission will consist of the URL to your GitHub repository and the SHA-1 commit ID for your repository state.
+
+NOTE: The GitHub repository also contains the dataset for the assignment so you do not have to download the data separately.
+
+###Loading and preprocessing the data
+
+Loading data
+
+
+```r
+file <- paste(getwd(),'activity.csv',sep='/')
+data <- read.csv(file)
+```
+
+Remove na
+
+
+```r
+data <- na.omit(data)
+```
+
+###What is mean total number of steps taken per day?
+
+
+```r
+total_step_per_day <- aggregate(data$steps, list(date=data$date), sum)
+hist(total_step_per_day$x, main = paste("Total Steps Each Day"), col="green", xlab="Number of Steps")
+```
+
+![plot of chunk unnamed-chunk-3](figure/unnamed-chunk-3.png) 
+
+Mean Total Step 
+
+
+```r
+mean(total_step_per_day$x)
+```
+
+```
+## [1] 10766
+```
+
+Median Total Step 
+
+
+```r
+median(total_step_per_day$x)
+```
+
+```
+## [1] 10765
+```
+
+###What is the average daily activity pattern?
+
+
+```r
+mean_step_per_interval <- aggregate(data$steps, list(interval=data$interval), mean)
+plot(mean_step_per_interval$interval,mean_step_per_interval$x, type="l", xlab="Interval", ylab="Number of Steps",main="Average Number of Steps per Day by Interval")
+```
+
+![plot of chunk unnamed-chunk-6](figure/unnamed-chunk-6.png) 
+
+Max number of steps
+
+
+```r
+mean_step_per_interval[which.max(mean_step_per_interval$x),1]
+```
+
+```
+## [1] 835
+```
+
+###Imputing missing values
+
+Note that there are a number of days/intervals where there are missing values (coded as NA). The presence of missing days may introduce bias into some calculations or summaries of the data.
+
+Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+
+
+```r
+file <- paste(getwd(),'activity.csv',sep='/')
+complete_data <- read.csv(file)
+clean_data <- na.omit(data)
+```
+
+Total number of missing values
+
+
+```r
+nrow(complete_data) - nrow(clean_data)
+```
+
+```
+## [1] 2304
+```
+
+Replace NA values with random number range from min value to max value of steps
+
+
+```r
+complete_data$steps[is.na(complete_data$steps)] <- sample(min(clean_data$steps):max(clean_data$steps), length(complete_data$steps[is.na(complete_data$steps)] ),replace=T)
+```
+
+
+```r
+sum_complete_data <- aggregate(complete_data$steps, list(date=complete_data$date), sum)
+hist(sum_complete_data$x, main = paste("Total Steps Each Day"), col="green", xlab="Number of Steps")
+
+sum_clean_data <- aggregate(clean_data$steps, list(date=clean_data$date), sum)
+hist(sum_clean_data$x, main = paste("Total Steps Each Day"), col="yellow", xlab="Number of Steps", add=T)
+
+legend("topright", c("Imputed", "Non-imputed"), col=c("green", "yellow"), lwd=10)
+```
+
+![plot of chunk unnamed-chunk-11](figure/unnamed-chunk-11.png) 
+
+###Are there differences in activity patterns between weekdays and weekends?
+
+
+```r
+weekdays <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+complete_data$w = as.factor(ifelse(is.element(weekdays(as.Date(complete_data$date)),weekdays), "Weekday", "Weekend"))
+w_interval <- aggregate(steps ~ interval + w, complete_data, mean)
+library(lattice)
+xyplot(w_interval$steps ~ w_interval$interval|w_interval$w, main="Average Steps per Day by Interval",xlab="Interval", ylab="Steps",layout=c(1,2), type="l")
+```
+
+![plot of chunk unnamed-chunk-12](figure/unnamed-chunk-12.png) 
+
